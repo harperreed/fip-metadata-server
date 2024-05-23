@@ -1,7 +1,8 @@
 package main
 
 import (
-    // "encoding/json"
+	"crypto/sha256"
+    "encoding/hex"
     "fmt"
     "io/ioutil"
     "log"
@@ -20,7 +21,7 @@ type CachedResponse struct {
 var (
     cache      = make(map[string]CachedResponse)
     cacheMutex sync.Mutex
-    cacheTTL   = 5 * time.Minute // Cache Time-To-Live
+    cacheTTL   = 1 * time.Second // Cache Time-To-Live
 )
 
 func main() {
@@ -46,18 +47,26 @@ func handler(w http.ResponseWriter, r *http.Request) {
     }
 
     log.Printf("Fetching data for param: %s\n", fipParam)
-    data, err := getCachedData(fipParam)
+    data, etag, err := getCachedData(fipParam)
     if err != nil {
         log.Printf("Error fetching data for param: %s, error: %v\n", fipParam, err)
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
     }
 
+    // Check if the client has a cached version
+    clientETag := r.Header.Get("If-None-Match")
+    if clientETag == etag {
+        w.WriteHeader(http.StatusNotModified)
+        return
+    }
+
     w.Header().Set("Content-Type", "application/json")
+    w.Header().Set("ETag", etag)
     w.Write(data)
 }
 
-func getCachedData(param string) ([]byte, error) {
+func getCachedData(param string) ([]byte, string, error) {
     cacheMutex.Lock()
     defer cacheMutex.Unlock()
 
@@ -67,7 +76,7 @@ func getCachedData(param string) ([]byte, error) {
     if cachedResponse, found := cache[param]; found {
         if time.Since(cachedResponse.CachedAt) < cacheTTL {
             log.Printf("Cache hit for param: %s\n", param)
-            return cachedResponse.Data, nil
+            return cachedResponse.Data, generateETag(cachedResponse.Data), nil
         }
         // Remove stale cache
         log.Printf("Cache expired for param: %s, fetching new data\n", param)
@@ -80,22 +89,29 @@ func getCachedData(param string) ([]byte, error) {
     url := fmt.Sprintf("https://www.radiofrance.fr/fip/api/live/webradios/%s", param)
     resp, err := http.Get(url)
     if err != nil {
-        return nil, fmt.Errorf("error fetching data for %s: %v", param, err)
+        return nil, "", fmt.Errorf("error fetching data for %s: %v", param, err)
     }
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        return nil, fmt.Errorf("received non-200 response code for %s: %d", param, resp.StatusCode)
+        return nil, "", fmt.Errorf("received non-200 response code for %s: %d", param, resp.StatusCode)
     }
 
     data, err := ioutil.ReadAll(resp.Body)
     if err != nil {
-        return nil, fmt.Errorf("error reading response body for %s: %v", param, err)
+        return nil, "", fmt.Errorf("error reading response body for %s: %v", param, err)
     }
 
     // Cache the new data
     cache[param] = CachedResponse{Data: data, CachedAt: time.Now()}
     log.Printf("New data cached for param: %s\n", param)
 
-    return data, nil
+    return data, generateETag(data), nil
+}
+
+func generateETag(data []byte) string {
+    // Generate a SHA-256 hash of the JSON data
+    hash := sha256.Sum256(data)
+    etag := hex.EncodeToString(hash[:])
+    return "\"" + etag + "\""
 }
