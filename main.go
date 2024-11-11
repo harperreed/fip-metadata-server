@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"sync"
@@ -23,6 +23,7 @@ var (
 	cache      = make(map[string]CachedResponse)
 	cacheMutex sync.Mutex
 	cacheTTL   = 1 * time.Second // Cache Time-To-Live
+	baseURL    = "https://www.radiofrance.fr/fip/api/live"
 )
 
 func main() {
@@ -64,7 +65,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("ETag", etag)
-	w.Write(data)
+	if _, err := w.Write(data); err != nil {
+		log.Printf("Error writing response: %v", err)
+		http.Error(w, "Error writing response", http.StatusInternalServerError)
+		return
+	}
+
 }
 
 func getCachedData(param string) ([]byte, string, error) {
@@ -87,21 +93,9 @@ func getCachedData(param string) ([]byte, string, error) {
 	}
 
 	// Fetch new data
-	url := fmt.Sprintf("https://www.radiofrance.fr/fip/api/live?webradio=%s", param)
-	log.Printf("Fetching data from: %s\n", url)
-	resp, err := http.Get(url)
+	data, err := fetchMetadata(param)
 	if err != nil {
-		return nil, "", fmt.Errorf("error fetching data for %s: %v", param, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, "", fmt.Errorf("received non-200 response code for %s: %d", param, resp.StatusCode)
-	}
-
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, "", fmt.Errorf("error reading response body for %s: %v", param, err)
+		return nil, "", err
 	}
 
 	// Cache the new data
@@ -109,6 +103,28 @@ func getCachedData(param string) ([]byte, string, error) {
 	log.Printf("New data cached for param: %s\n", param)
 
 	return data, generateETag(data), nil
+}
+
+// Make fetchMetadata a variable so it can be replaced in tests
+var fetchMetadata = func(param string) ([]byte, error) {
+	url := fmt.Sprintf("%s?webradio=%s", baseURL, param)
+	log.Printf("Fetching data from: %s\n", url)
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching data for %s: %v", param, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("received non-200 response code for %s: %d", param, resp.StatusCode)
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body for %s: %v", param, err)
+	}
+
+	return data, nil
 }
 
 func generateETag(data []byte) string {
