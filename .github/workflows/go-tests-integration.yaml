@@ -1,0 +1,48 @@
+name: Go Integration Tests
+
+on:
+    push:
+        branches:
+            - "main"
+        paths-ignore:
+            - ".github/**"
+            - "**.md"
+            - ".gitignore"
+            - ".mise.toml"
+    pull_request:
+        branches:
+            - "**"
+    workflow_dispatch:
+
+jobs:
+    test:
+        name: Run Go Integration Tests
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        steps:
+            - name: Check out code
+              uses: actions/checkout@v3.5.3
+            - name: Set up Go
+              uses: actions/setup-go@v4.0.1
+              with:
+                  go-version: "1.21"
+            - name: Cache Go modules
+              uses: actions/cache@v3.3.1
+              with:
+                  path: ~/go/pkg/mod
+                  key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+                  restore-keys: |
+                      ${{ runner.os }}-go-
+            - name: Verify dependencies
+              run: go mod verify
+            - name: Run go mod tidy
+              run: go mod tidy
+            - name: Install dependencies
+              run: go mod download
+            - name: Run tests
+              run: INTEGRATION_TESTS=1 go test -v  ./... -coverprofile=coverage.out -covermode=atomic
+            - name: Upload test results
+              uses: actions/upload-artifact@v3.1.2
+              with:
+                  name: test-results
+                  path: coverage.out
