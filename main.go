@@ -23,6 +23,7 @@ var (
 	cache      = make(map[string]CachedResponse)
 	cacheMutex sync.Mutex
 	cacheTTL   = 1 * time.Second // Cache Time-To-Live
+	baseURL    = "https://www.radiofrance.fr/fip/api/live"
 )
 
 func main() {
@@ -99,8 +100,9 @@ func getCachedData(param string) ([]byte, string, error) {
 	return data, generateETag(data), nil
 }
 
-func fetchMetadata(param string) ([]byte, error) {
-	url := fmt.Sprintf("https://www.radiofrance.fr/fip/api/live?webradio=%s", param)
+// Make fetchMetadata a variable so it can be replaced in tests
+var fetchMetadata = func(param string) ([]byte, error) {
+	url := fmt.Sprintf("%s?webradio=%s", baseURL, param)
 	log.Printf("Fetching data from: %s\n", url)
 	resp, err := http.Get(url)
 	if err != nil {
