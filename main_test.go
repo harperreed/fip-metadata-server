@@ -34,7 +34,7 @@ func NewTestServer() *TestServer {
 
 		// Return appropriate test response based on the webradio parameter
 		w.Header().Set("Content-Type", "application/json")
-		if _, err := w.Write([]byte(`{"data":"test"}`)); err != nil {
+		if _, err := w.Write([]byte(`{"stationName":"` + webradio + `"}`)); err != nil {
 			http.Error(w, "Error writing response", http.StatusInternalServerError)
 			return
 		}
@@ -63,7 +63,7 @@ func TestHandler(t *testing.T) {
 
 	// Override fetchMetadata for testing
 	fetchMetadata = func(param string) ([]byte, error) {
-		return []byte(`{"data":"test"}`), nil
+		return []byte(`{"stationName":"` + param + `"}`), nil
 	}
 
 	req, err := http.NewRequest("GET", "/api/metadata/fip_rock", nil)
@@ -94,7 +94,7 @@ func TestGetCachedData(t *testing.T) {
 	cacheMutex.Unlock()
 
 	param := "fip_rock"
-	testData := []byte(`{"data":"test"}`)
+	testData := []byte(`{"stationName":"fip_rock"}`)
 
 	// Pre-populate cache with test data
 	cacheMutex.Lock()
@@ -137,9 +137,40 @@ func TestFetchMetadata(t *testing.T) {
 		t.Fatalf("fetchMetadata returned an error: %v", err)
 	}
 
-	expectedData := []byte(`{"data":"test"}`)
+	expectedData := []byte(`{"stationName":"test"}`)
 	if !bytes.Equal(data, expectedData) {
 		t.Errorf("fetchMetadata returned unexpected data: got %s want %s",
 			string(data), string(expectedData))
+	}
+}
+
+func TestStationNames(t *testing.T) {
+	stations := []string{
+		"fip_reggae", "fip_pop", "fip_metal", "fip_hiphop", "fip_rock",
+		"fip_jazz", "fip_world", "fip_groove", "fip_nouveautes", "fip_electro", "fip",
+	}
+
+	for _, station := range stations {
+		t.Run(station, func(t *testing.T) {
+			// Setup test server
+			ts := NewTestServer()
+			defer ts.Close()
+
+			// Store the original baseURL and restore it after the test
+			originalBaseURL := baseURL
+			baseURL = ts.server.URL + "/fip/api/live"
+			defer func() { baseURL = originalBaseURL }()
+
+			data, err := fetchMetadata(station)
+			if err != nil {
+				t.Fatalf("fetchMetadata returned an error: %v", err)
+			}
+
+			expectedData := []byte(`{"stationName":"` + station + `"}`)
+			if !bytes.Equal(data, expectedData) {
+				t.Errorf("fetchMetadata returned unexpected data for %s: got %s want %s",
+					station, string(data), string(expectedData))
+			}
+		})
 	}
 }
