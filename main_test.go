@@ -81,6 +81,76 @@ func TestHandler(t *testing.T) {
 			status, http.StatusOK)
 	}
 
+	// Test different request parameters and responses
+	testCases := []struct {
+		param         string
+		expectedCode  int
+		expectedBody  string
+	}{
+		{"fip_rock", http.StatusOK, `{"stationName":"fip_rock"}`},
+		{"fip_jazz", http.StatusOK, `{"stationName":"fip_jazz"}`},
+		{"", http.StatusBadRequest, "Missing 'param' parameter"},
+	}
+
+	for _, tc := range testCases {
+		req, err := http.NewRequest("GET", "/api/metadata/"+tc.param, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, req)
+
+		if status := rr.Code; status != tc.expectedCode {
+			t.Errorf("handler returned wrong status code for param %s: got %v want %v",
+				tc.param, status, tc.expectedCode)
+		}
+
+		if rr.Body.String() != tc.expectedBody {
+			t.Errorf("handler returned unexpected body for param %s: got %v want %v",
+				tc.param, rr.Body.String(), tc.expectedBody)
+		}
+	}
+
+	// Test different HTTP methods
+	methods := []string{"POST", "PUT"}
+	for _, method := range methods {
+		req, err := http.NewRequest(method, "/api/metadata/fip_rock", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, req)
+
+		if status := rr.Code; status != http.StatusMethodNotAllowed {
+			t.Errorf("handler returned wrong status code for method %s: got %v want %v",
+				method, status, http.StatusMethodNotAllowed)
+		}
+	}
+
+	// Test behavior when client has a cached version and ETag matches
+	cacheMutex.Lock()
+	cache["fip_rock"] = CachedResponse{
+		Data:     []byte(`{"stationName":"fip_rock"}`),
+		CachedAt: time.Now(),
+	}
+	cacheMutex.Unlock()
+
+	req, err = http.NewRequest("GET", "/api/metadata/fip_rock", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("If-None-Match", generateETag([]byte(`{"stationName":"fip_rock"}`)))
+
+	rr = httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusNotModified {
+		t.Errorf("handler returned wrong status code for cached version: got %v want %v",
+			status, http.StatusNotModified)
+	}
+
 	// Reset cache for this test
 	cacheMutex.Lock()
 	cache = make(map[string]CachedResponse)
