@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -34,7 +35,12 @@ func NewTestServer() *TestServer {
 
 		// Return appropriate test response based on the webradio parameter
 		w.Header().Set("Content-Type", "application/json")
-		if _, err := w.Write([]byte(`{"data":"test"}`)); err != nil {
+		response := map[string]interface{}{
+			"stationName": webradio,
+			"data":        "test",
+		}
+		jsonResponse, _ := json.Marshal(response)
+		if _, err := w.Write(jsonResponse); err != nil {
 			http.Error(w, "Error writing response", http.StatusInternalServerError)
 			return
 		}
@@ -63,7 +69,7 @@ func TestHandler(t *testing.T) {
 
 	// Override fetchMetadata for testing
 	fetchMetadata = func(param string) ([]byte, error) {
-		return []byte(`{"data":"test"}`), nil
+		return []byte(`{"stationName":"` + param + `","data":"test"}`), nil
 	}
 
 	req, err := http.NewRequest("GET", "/api/metadata/fip_rock", nil)
@@ -94,7 +100,7 @@ func TestGetCachedData(t *testing.T) {
 	cacheMutex.Unlock()
 
 	param := "fip_rock"
-	testData := []byte(`{"data":"test"}`)
+	testData := []byte(`{"stationName":"fip_rock","data":"test"}`)
 
 	// Pre-populate cache with test data
 	cacheMutex.Lock()
@@ -137,9 +143,19 @@ func TestFetchMetadata(t *testing.T) {
 		t.Fatalf("fetchMetadata returned an error: %v", err)
 	}
 
-	expectedData := []byte(`{"data":"test"}`)
+	expectedData := []byte(`{"stationName":"test","data":"test"}`)
 	if !bytes.Equal(data, expectedData) {
 		t.Errorf("fetchMetadata returned unexpected data: got %s want %s",
 			string(data), string(expectedData))
+	}
+
+	// Parse the JSON response and check the stationName field
+	var jsonResponse map[string]interface{}
+	if err := json.Unmarshal(data, &jsonResponse); err != nil {
+		t.Fatalf("error unmarshalling JSON response: %v", err)
+	}
+
+	if stationName, ok := jsonResponse["stationName"].(string); !ok || stationName != param {
+		t.Errorf("stationName mismatch: expected %s, got %s", param, stationName)
 	}
 }
