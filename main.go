@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -122,6 +123,16 @@ var fetchMetadata = func(param string) ([]byte, error) {
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body for %s: %v", param, err)
+	}
+
+	// Verify the stationName field
+	var jsonResponse map[string]interface{}
+	if err := json.Unmarshal(data, &jsonResponse); err != nil {
+		return nil, fmt.Errorf("error unmarshalling JSON response for %s: %v", param, err)
+	}
+
+	if stationName, ok := jsonResponse["stationName"].(string); !ok || stationName != param {
+		return nil, fmt.Errorf("stationName mismatch: expected %s, got %s", param, stationName)
 	}
 
 	return data, nil
