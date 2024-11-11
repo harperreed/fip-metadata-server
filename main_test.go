@@ -2,12 +2,8 @@ package main
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"sync"
 	"testing"
 	"time"
 )
@@ -78,9 +74,4 @@ func TestCachingMechanism(t *testing.T) {
 		t.Errorf("getCachedData returned unexpected ETag: got %v want %v",
 			cachedETag, etag)
 	}
-}
-
-func generateETag(data []byte) string {
-	hash := sha256.Sum256(data)
-	return "\"" + hex.EncodeToString(hash[:]) + "\""
 }
