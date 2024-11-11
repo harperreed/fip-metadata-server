@@ -1,59 +1,54 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API Documentation</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        h1, h2 {
-            color: #333;
-        }
-        p, pre {
-            color: #666;
-        }
-        code {
-            background-color: #f4f4f4;
-            padding: 2px 4px;
-            border-radius: 4px;
-        }
-        ul {
-            list-style-type: none;
-        }
-        li {
-            margin: 5px 0;
-        }
-    </style>
-</head>
-<body>
-    <h1>API Documentation</h1>
-    <h2>Endpoint</h2>
-    <p>To use the API, make a GET request to:</p>
-    <pre><code>https://fip-metadata.fly.dev/api/metadata/{param}</code></pre>
-    <p>Replace <code>{param}</code> with one of the following station identifiers:</p>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>API Documentation</title>
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+        />
+    </head>
+    <body>
+        <main class="container">
+            <h1>API Documentation</h1>
+            <h2>Endpoint</h2>
+            <p>To use the API, make a GET request to:</p>
+            <pre><code>https://fip-metadata.fly.dev/api/metadata/{param}</code></pre>
+            <p>
+                Replace <code>{param}</code> with one of the following station
+                identifiers:
+            </p>
 
-    <ul>
-        <li><code>fip_reggae</code> - FIP autour du reggae, FIP Reggae (hls)</li>
-        <li><code>fip_pop</code> - FIP POP, FIP POP (hls), FIP POP (hifi)</li>
-        <li><code>fip_metal</code> - FIP Metal</li>
-        <li><code>fip_hiphop</code> - FIP Hip Hop, Fip Hip Hop</li>
-        <li><code>fip_rock</code> - FIP autour du rock</li>
-        <li><code>fip_jazz</code> - FIP autour du jazz</li>
-        <li><code>fip_world</code> - FIP autour du monde</li>
-        <li><code>fip_groove</code> - FIP autour du groove</li>
-        <li><code>fip_nouveautes</code> - Tout nouveau, tout FIP</li>
-        <li><code>fip_electro</code> - FIP autour de l’électro</li>
-        <li><code>fip</code> - FIP (hls), FIP (hifi)</li>
-    </ul>
+            <ul>
+                <li>
+                    <code>fip_reggae</code> - FIP autour du reggae, FIP Reggae
+                    (hls)
+                </li>
+                <li>
+                    <code>fip_pop</code> - FIP POP, FIP POP (hls), FIP POP
+                    (hifi)
+                </li>
+                <li><code>fip_metal</code> - FIP Metal</li>
+                <li><code>fip_hiphop</code> - FIP Hip Hop, Fip Hip Hop</li>
+                <li><code>fip_rock</code> - FIP autour du rock</li>
+                <li><code>fip_jazz</code> - FIP autour du jazz</li>
+                <li><code>fip_world</code> - FIP autour du monde</li>
+                <li><code>fip_groove</code> - FIP autour du groove</li>
+                <li><code>fip_nouveautes</code> - Tout nouveau, tout FIP</li>
+                <li><code>fip_electro</code> - FIP autour de l’électro</li>
+                <li><code>fip</code> - FIP (hls), FIP (hifi)</li>
+            </ul>
 
-    <h2>Example</h2>
-    <p>Example request to get metadata for FIP Reggae:</p>
-    <pre><code>https://fip-metadata.fly.dev/api/metadata/fip_reggae</code></pre>
+            <h2>Example</h2>
+            <p>Example request to get metadata for FIP Reggae:</p>
+            <pre><code>https://fip-metadata.fly.dev/api/metadata/fip_reggae</code></pre>
 
-    <h2>Response</h2>
-    <p>The API will return the metadata for the requested station in JSON format.</p>
-</body>
+            <h2>Response</h2>
+            <p>
+                The API will return the metadata for the requested station in
+                JSON format.
+            </p>
+        </main>
+    </body>
 </html>
