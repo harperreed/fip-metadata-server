@@ -1,4 +1,4 @@
-name: Go Tests and Lint
+name: Go Integration Tests
 
 on:
     push:
@@ -12,6 +12,7 @@ on:
     pull_request:
         branches:
             - "**"
+    workflow_dispatch:
 
 jobs:
     test:

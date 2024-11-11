@@ -102,7 +102,7 @@ func testAllStations(t *testing.T, cfg *TestIntegrationConfig) {
 				t.Errorf("Invalid JSON response for %s: %v", station, err)
 			}
 
-			expectedFields := []string{"levels", "slots"}
+			expectedFields := []string{"stationName", "now"}
 			for _, field := range expectedFields {
 				if _, ok := result[field]; !ok {
 					t.Errorf("Expected field '%s' missing from response for station %s", field, station)
