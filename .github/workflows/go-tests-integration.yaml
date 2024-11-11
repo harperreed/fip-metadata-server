@@ -1,4 +1,4 @@
-name: Go Tests and Lint
+name: Go Integration Tests
 
 on:
     push:
