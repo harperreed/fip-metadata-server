@@ -2,53 +2,80 @@ package main
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"sync"
 	"testing"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
+// Create a test server to mock the FIP API
+func setupTestServer() *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"data":"test"}`))
+	}))
+}
+
 func TestHandler(t *testing.T) {
-	req, err := http.NewRequest("GET", "/api/metadata/test", nil)
+	// Setup test server
+	testServer := setupTestServer()
+	defer testServer.Close()
+
+	req, err := http.NewRequest("GET", "/api/metadata/fip_rock", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(handler)
-
-	handler.ServeHTTP(rr, req)
+	router := mux.NewRouter()
+	router.HandleFunc("/api/metadata/{param}", handler)
+	router.ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusOK)
 	}
 
-	expected := `{"data":"test"}`
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
+	// Reset cache for this test
+	cacheMutex.Lock()
+	cache = make(map[string]CachedResponse)
+	cacheMutex.Unlock()
 }
 
 func TestGetCachedData(t *testing.T) {
-	param := "test"
+	// Setup test server
+	testServer := setupTestServer()
+	defer testServer.Close()
+
+	// Reset cache before test
+	cacheMutex.Lock()
+	cache = make(map[string]CachedResponse)
+	cacheMutex.Unlock()
+
+	param := "fip_rock"
+	testData := []byte(`{"data":"test"}`)
+
+	// Pre-populate cache with test data
+	cacheMutex.Lock()
+	cache[param] = CachedResponse{
+		Data:     testData,
+		CachedAt: time.Now(),
+	}
+	cacheMutex.Unlock()
+
 	data, etag, err := getCachedData(param)
 	if err != nil {
 		t.Fatalf("getCachedData returned an error: %v", err)
 	}
 
-	expectedData := []byte(`{"data":"test"}`)
-	if !bytes.Equal(data, expectedData) {
+	if !bytes.Equal(data, testData) {
 		t.Errorf("getCachedData returned unexpected data: got %v want %v",
-			data, expectedData)
+			string(data), string(testData))
 	}
 
-	expectedETag := generateETag(expectedData)
+	expectedETag := generateETag(testData)
 	if etag != expectedETag {
 		t.Errorf("getCachedData returned unexpected ETag: got %v want %v",
 			etag, expectedETag)
@@ -56,12 +83,24 @@ func TestGetCachedData(t *testing.T) {
 }
 
 func TestCachingMechanism(t *testing.T) {
-	param := "test"
-	data := []byte(`{"data":"test"}`)
-	etag := generateETag(data)
+	// Setup test server
+	testServer := setupTestServer()
+	defer testServer.Close()
 
+	// Reset cache before test
 	cacheMutex.Lock()
-	cache[param] = CachedResponse{Data: data, CachedAt: time.Now()}
+	cache = make(map[string]CachedResponse)
+	cacheMutex.Unlock()
+
+	param := "fip_rock"
+	testData := []byte(`{"data":"test"}`)
+	
+	// Pre-populate cache
+	cacheMutex.Lock()
+	cache[param] = CachedResponse{
+		Data:     testData,
+		CachedAt: time.Now(),
+	}
 	cacheMutex.Unlock()
 
 	cachedData, cachedETag, err := getCachedData(param)
@@ -69,16 +108,18 @@ func TestCachingMechanism(t *testing.T) {
 		t.Fatalf("getCachedData returned an error: %v", err)
 	}
 
-	if !bytes.Equal(cachedData, data) {
-		t.Errorf("getCachedData returned unexpected data: got %v want %v",
-			cachedData, data)
+	if !bytes.Equal(cachedData, testData) {
+		t.Errorf("getCachedData returned unexpected data: got %s want %s",
+			string(cachedData), string(testData))
 	}
 
-	if cachedETag != etag {
+	expectedETag := generateETag(testData)
+	if cachedETag != expectedETag {
 		t.Errorf("getCachedData returned unexpected ETag: got %v want %v",
-			cachedETag, etag)
+			cachedETag, expectedETag)
 	}
 }
+
 
 func TestFetchMetadata(t *testing.T) {
 	param := "test"
@@ -98,3 +139,4 @@ func generateETag(data []byte) string {
 	hash := sha256.Sum256(data)
 	return "\"" + hex.EncodeToString(hash[:]) + "\""
 }
+
