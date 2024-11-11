@@ -34,7 +34,10 @@ func NewTestServer() *TestServer {
 
 		// Return appropriate test response based on the webradio parameter
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"data":"test"}`))
+		if _, err := w.Write([]byte(`{"data":"test"}`)); err != nil {
+			http.Error(w, "Error writing response", http.StatusInternalServerError)
+			return
+		}
 	}))
 	return ts
 }

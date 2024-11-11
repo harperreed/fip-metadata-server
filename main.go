@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"sync"
@@ -65,7 +65,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("ETag", etag)
-	w.Write(data)
+	if _, err := w.Write(data); err != nil {
+		log.Printf("Error writing response: %v", err)
+		http.Error(w, "Error writing response", http.StatusInternalServerError)
+		return
+	}
+
 }
 
 func getCachedData(param string) ([]byte, string, error) {
@@ -114,7 +119,7 @@ var fetchMetadata = func(param string) ([]byte, error) {
 		return nil, fmt.Errorf("received non-200 response code for %s: %d", param, resp.StatusCode)
 	}
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body for %s: %v", param, err)
 	}
