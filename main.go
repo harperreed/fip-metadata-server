@@ -87,21 +87,9 @@ func getCachedData(param string) ([]byte, string, error) {
 	}
 
 	// Fetch new data
-	url := fmt.Sprintf("https://www.radiofrance.fr/fip/api/live?webradio=%s", param)
-	log.Printf("Fetching data from: %s\n", url)
-	resp, err := http.Get(url)
+	data, err := fetchMetadata(param)
 	if err != nil {
-		return nil, "", fmt.Errorf("error fetching data for %s: %v", param, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, "", fmt.Errorf("received non-200 response code for %s: %d", param, resp.StatusCode)
-	}
-
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, "", fmt.Errorf("error reading response body for %s: %v", param, err)
+		return nil, "", err
 	}
 
 	// Cache the new data
@@ -109,6 +97,27 @@ func getCachedData(param string) ([]byte, string, error) {
 	log.Printf("New data cached for param: %s\n", param)
 
 	return data, generateETag(data), nil
+}
+
+func fetchMetadata(param string) ([]byte, error) {
+	url := fmt.Sprintf("https://www.radiofrance.fr/fip/api/live?webradio=%s", param)
+	log.Printf("Fetching data from: %s\n", url)
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching data for %s: %v", param, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("received non-200 response code for %s: %d", param, resp.StatusCode)
+	}
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body for %s: %v", param, err)
+	}
+
+	return data, nil
 }
 
 func generateETag(data []byte) string {

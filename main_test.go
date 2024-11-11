@@ -80,6 +80,20 @@ func TestCachingMechanism(t *testing.T) {
 	}
 }
 
+func TestFetchMetadata(t *testing.T) {
+	param := "test"
+	data, err := fetchMetadata(param)
+	if err != nil {
+		t.Fatalf("fetchMetadata returned an error: %v", err)
+	}
+
+	expectedData := []byte(`{"data":"test"}`)
+	if !bytes.Equal(data, expectedData) {
+		t.Errorf("fetchMetadata returned unexpected data: got %v want %v",
+			data, expectedData)
+	}
+}
+
 func generateETag(data []byte) string {
 	hash := sha256.Sum256(data)
 	return "\"" + hex.EncodeToString(hash[:]) + "\""
