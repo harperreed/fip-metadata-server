@@ -1,22 +1,49 @@
 name: 'Github: Update AUTHORS'
+permissions:
+  contents: write
+  pull-requests: write
 on:
   push:
     branches:
       - main
 jobs:
-  updateAuthors:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: Update AUTHORS
-        run: |
-          git log --format='%aN <%aE>%n%cN <%cE>' | sort -u > AUTHORS
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v3
-        with:
-          commit-message: update authors
-          title: Update AUTHORS
-          body: Credit new contributors by updating AUTHORS
-          branch: update-authors
+    updateAuthors:
+        runs-on: ubuntu-latest
+        env:
+            AUTHORS_FILE: AUTHORS
+        timeout-minutes: 10
+        steps:
+            - uses: actions/checkout@v3
+              with:
+                fetch-depth: 0
+                token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Update AUTHORS
+              id: update-authors
+              run: |
+                git log --format='%aN <%aE>%n%cN <%cE>' | sort -u > $AUTHORS_FILE
+                if [ -s "$AUTHORS_FILE" ]; then
+                  echo "AUTHORS file updated successfully"
+                  echo "has_changes=true" >> $GITHUB_OUTPUT
+                else
+                  echo "Error: AUTHORS file is empty"
+                  exit 1
+                fi
+
+            - name: Create Pull Request
+              if: steps.update-authors.outputs.has_changes == 'true'
+              uses: peter-evans/create-pull-request@v5
+              with:
+                commit-message: "chore: update AUTHORS list"
+                title: "chore: update AUTHORS list"
+                body: |
+                  This PR updates the AUTHORS file to credit new contributors.
+
+                  Changes:
+                  - Updated list of contributors based on git history
+                branch: update-authors
+                delete-branch: true
+                base: main
+                labels: |
+                  documentation
+                  automated pr
