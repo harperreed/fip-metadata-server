@@ -283,7 +283,7 @@
                 if (metadata.now) {
                     // Update album art
                     if (metadata.now.visuals?.card?.src) {
-                        albumArt.innerHTML = `<img src="${metadata.now.visuals.card.src}" alt="Album artwork">`;
+                        albumArt.innerHTML = `<img src="${metadata.now.visuals.card.src}/576x576" alt="Album artwork">`;
                     } else {
                         albumArt.innerHTML = "🎵";
                         albumArt.classList.add("placeholder-art");
