@@ -53,7 +53,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	data, etag, err := getCachedData(fipParam)
 	if err != nil {
 		log.Printf("Error fetching data for param: %s, error: %v\n", fipParam, err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		errorResponse := map[string]string{
+			"error":   "API Error",
+			"message": err.Error(),
+		}
+		jsonResp, _ := json.Marshal(errorResponse)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(jsonResp)
 		return
 	}
 
@@ -129,10 +136,15 @@ var fetchMetadata = func(param string) ([]byte, error) {
 		return nil, fmt.Errorf("error reading response body for %s: %v", param, err)
 	}
 
-	// Verify the stationName field
+	// Verify the response is not null and has the expected stationName field
 	var jsonResponse map[string]interface{}
 	if err := json.Unmarshal(data, &jsonResponse); err != nil {
 		return nil, fmt.Errorf("error unmarshalling JSON response for %s: %v", param, err)
+	}
+
+	// Check if response is null (FIP API error case)
+	if jsonResponse == nil {
+		return nil, fmt.Errorf("received null response from FIP API for %s", param)
 	}
 
 	if stationName, ok := jsonResponse["stationName"].(string); !ok || stationName != param {

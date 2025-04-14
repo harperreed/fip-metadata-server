@@ -4,7 +4,10 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>FIP Metadata API 🗼</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎶</text></svg>">
+        <link
+            rel="icon"
+            href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎶</text></svg>"
+        />
         <link
             rel="stylesheet"
             href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
@@ -82,6 +85,9 @@
                 padding: 1rem;
                 background: rgba(211, 47, 47, 0.1);
                 border-radius: 8px;
+                border: 1px solid rgba(211, 47, 47, 0.3);
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                margin-bottom: 0.5rem;
             }
             .placeholder-art {
                 display: flex;
@@ -105,18 +111,104 @@
             </p>
 
             <ul>
-
-                <li><code><a href="https://fip-metadata.fly.dev/api/metadata/fip_reggae">fip_reggae</a></code> - FIP autour du reggae, FIP Reggae (hls)</li>
-                <li><code><a href="https://fip-metadata.fly.dev/api/metadata/fip_pop">fip_pop</a></code> - FIP POP, FIP POP (hls), FIP POP (hifi)</li>
-                <li><code><a href="https://fip-metadata.fly.dev/api/metadata/fip_metal">fip_metal</a></code> - FIP Metal</li>
-                <li><code><a href="https://fip-metadata.fly.dev/api/metadata/fip_hiphop">fip_hiphop</a></code> - FIP Hip Hop, Fip Hip Hop</li>
-                <li><code><a href="https://fip-metadata.fly.dev/api/metadata/fip_rock">fip_rock</a></code> - FIP autour du rock</li>
-                <li><code><a href="https://fip-metadata.fly.dev/api/metadata/fip_jazz">fip_jazz</a></code> - FIP autour du jazz</li>
-                <li><code><a href="https://fip-metadata.fly.dev/api/metadata/fip_world">fip_world</a></code> - FIP autour du monde</li>
-                <li><code><a href="https://fip-metadata.fly.dev/api/metadata/fip_groove">fip_groove</a></code> - FIP autour du groove</li>
-                <li><code><a href="https://fip-metadata.fly.dev/api/metadata/fip_nouveautes">fip_nouveautes</a></code> - Tout nouveau, tout FIP</li>
-                <li><code><a href="https://fip-metadata.fly.dev/api/metadata/fip_electro">fip_electro</a></code> - FIP autour de l’électro</li>
-                <li><code><a href="https://fip-metadata.fly.dev/api/metadata/fip">fip</a></code> - FIP (hls), FIP (hifi)</li>
+                <li>
+                    <code
+                        ><a
+                            href="https://fip-metadata.fly.dev/api/metadata/fip_reggae"
+                            >fip_reggae</a
+                        ></code
+                    >
+                    - FIP autour du reggae, FIP Reggae (hls)
+                </li>
+                <li>
+                    <code
+                        ><a
+                            href="https://fip-metadata.fly.dev/api/metadata/fip_pop"
+                            >fip_pop</a
+                        ></code
+                    >
+                    - FIP POP, FIP POP (hls), FIP POP (hifi)
+                </li>
+                <li>
+                    <code
+                        ><a
+                            href="https://fip-metadata.fly.dev/api/metadata/fip_metal"
+                            >fip_metal</a
+                        ></code
+                    >
+                    - FIP Metal
+                </li>
+                <li>
+                    <code
+                        ><a
+                            href="https://fip-metadata.fly.dev/api/metadata/fip_hiphop"
+                            >fip_hiphop</a
+                        ></code
+                    >
+                    - FIP Hip Hop, Fip Hip Hop
+                </li>
+                <li>
+                    <code
+                        ><a
+                            href="https://fip-metadata.fly.dev/api/metadata/fip_rock"
+                            >fip_rock</a
+                        ></code
+                    >
+                    - FIP autour du rock
+                </li>
+                <li>
+                    <code
+                        ><a
+                            href="https://fip-metadata.fly.dev/api/metadata/fip_jazz"
+                            >fip_jazz</a
+                        ></code
+                    >
+                    - FIP autour du jazz
+                </li>
+                <li>
+                    <code
+                        ><a
+                            href="https://fip-metadata.fly.dev/api/metadata/fip_world"
+                            >fip_world</a
+                        ></code
+                    >
+                    - FIP autour du monde
+                </li>
+                <li>
+                    <code
+                        ><a
+                            href="https://fip-metadata.fly.dev/api/metadata/fip_groove"
+                            >fip_groove</a
+                        ></code
+                    >
+                    - FIP autour du groove
+                </li>
+                <li>
+                    <code
+                        ><a
+                            href="https://fip-metadata.fly.dev/api/metadata/fip_nouveautes"
+                            >fip_nouveautes</a
+                        ></code
+                    >
+                    - Tout nouveau, tout FIP
+                </li>
+                <li>
+                    <code
+                        ><a
+                            href="https://fip-metadata.fly.dev/api/metadata/fip_electro"
+                            >fip_electro</a
+                        ></code
+                    >
+                    - FIP autour de l’électro
+                </li>
+                <li>
+                    <code
+                        ><a href="https://fip-metadata.fly.dev/api/metadata/fip"
+                            >fip</a
+                        ></code
+                    >
+                    - FIP (hls), FIP (hifi)
+                </li>
             </ul>
 
             <h2>Example</h2>
@@ -128,9 +220,19 @@
                 The API will return the metadata for the requested station in
                 JSON format.
             </p>
-            
+            <h3>Source</h3>
+            <p>
+                Source code is available here
+                <a href="https://github.com/harperreed/fip-metadata-server"
+                    >harperreed/fip-metadata-server</a
+                >
+            </p>
+
             <h2>Live Station Information</h2>
-            <p>Thanks to <a href="https://github.com/culmat">@culmat</a> we can now use this in JS:</p>
+            <p>
+                Thanks to <a href="https://github.com/culmat">@culmat</a> we can
+                now use this in JS:
+            </p>
             <div id="stations">
                 <div class="station-info" data-station="fip">
                     <header class="station-name">FIP</header>
@@ -150,7 +252,6 @@
                     </div>
                 </div>
 
-
                 <div class="station-info" data-station="fip_metal">
                     <h3 class="station-name">FIP Metal</h3>
                     <div class="album-art placeholder-art">🎵</div>
@@ -159,7 +260,7 @@
                         <div class="next-track"></div>
                     </div>
                 </div>
-                
+
                 <div class="station-info" data-station="fip_hiphop">
                     <h3 class="station-name">FIP Hiphop</h3>
                     <div class="album-art placeholder-art">🎵</div>
@@ -168,7 +269,7 @@
                         <div class="next-track"></div>
                     </div>
                 </div>
-                
+
                 <div class="station-info" data-station="fip_rock">
                     <h3 class="station-name">FIP Rock</h3>
                     <div class="album-art placeholder-art">🎵</div>
@@ -177,7 +278,7 @@
                         <div class="next-track"></div>
                     </div>
                 </div>
-                
+
                 <div class="station-info" data-station="fip_jazz">
                     <h3 class="station-name">FIP Jazz</h3>
                     <div class="album-art placeholder-art">🎵</div>
@@ -186,7 +287,7 @@
                         <div class="next-track"></div>
                     </div>
                 </div>
-                
+
                 <div class="station-info" data-station="fip_world">
                     <h3 class="station-name">FIP World</h3>
                     <div class="album-art placeholder-art">🎵</div>
@@ -195,7 +296,7 @@
                         <div class="next-track"></div>
                     </div>
                 </div>
-                
+
                 <div class="station-info" data-station="fip_groove">
                     <h3 class="station-name">FIP Groove</h3>
                     <div class="album-art placeholder-art">🎵</div>
@@ -204,7 +305,7 @@
                         <div class="next-track"></div>
                     </div>
                 </div>
-                
+
                 <div class="station-info" data-station="fip_nouveautes">
                     <h3 class="station-name">Tout nouveau, tout FIP</h3>
                     <div class="album-art placeholder-art">🎵</div>
@@ -213,7 +314,7 @@
                         <div class="next-track"></div>
                     </div>
                 </div>
-                
+
                 <div class="station-info" data-station="fip_electro">
                     <h3 class="station-name">FIP Electro</h3>
                     <div class="album-art placeholder-art">🎵</div>
@@ -223,23 +324,34 @@
                     </div>
                 </div>
             </div>
-            
+
             <h2>yay</h2>
-            Let me know if you have thoughts: <a href="mailto:harper@modest.com?subject=FIP METADATA Feedback">harper@modest.com</a></p>
+
+            <p>
+                Let me know if you have thoughts:
+                <a href="mailto:harper@modest.com?subject=FIP METADATA Feedback"
+                    >harper@modest.com</a
+                >
+            </p>
         </main>
         <script>
-            const API_BASE = "https://fip-metadata.fly.dev/api/metadata";
+            const API_BASE = "/api/metadata";
             const UPDATE_INTERVAL = 10000; // Update every 10 seconds
 
             async function fetchStationMetadata(stationId) {
                 try {
                     const response = await fetch(`${API_BASE}/${stationId}`);
-                    if (!response.ok) {
-                        throw new Error(
-                            `HTTP error! status: ${response.status}`,
-                        );
+                    const data = await response.json();
+
+                    // Check if the response contains an error
+                    if (!response.ok || data.error) {
+                        const errorMsg =
+                            data.message ||
+                            `HTTP error! status: ${response.status}`;
+                        throw new Error(errorMsg);
                     }
-                    return await response.json();
+
+                    return data;
                 } catch (error) {
                     console.error(
                         `Error fetching metadata for ${stationId}:`,
@@ -330,13 +442,26 @@
                         const metadata = await fetchStationMetadata(stationId);
                         updateStationDisplay(stationElement, metadata);
                     } catch (error) {
+                        // Clear album art
+                        const albumArt =
+                            stationElement.querySelector(".album-art");
+                        albumArt.innerHTML = "🚫";
+                        albumArt.classList.add("placeholder-art");
+
+                        // Show error message
                         nowPlayingElement.innerHTML = `
                             <div class="error">
-                                Failed to load station information
+                                FIP API temporarily unavailable
                                 <br>
                                 <small>${error.message}</small>
                             </div>
                         `;
+
+                        // Clear next track info
+                        const nextTrackElement =
+                            stationElement.querySelector(".next-track");
+                        nextTrackElement.innerHTML = "";
+
                         nowPlayingElement.classList.remove("loading");
                     }
                 });
