@@ -147,7 +147,7 @@ func TestFetchMetadata(t *testing.T) {
 func TestStationNames(t *testing.T) {
 	stations := []string{
 		"fip_reggae", "fip_pop", "fip_metal", "fip_hiphop", "fip_rock",
-		"fip_jazz", "fip_world", "fip_groove", "fip_nouveautes", "fip_electro", "fip",
+		"fip_jazz", "fip_world", "fip_groove", "fip_nouveautes", "fip_electro", "fip_cultes", "fip",
 	}
 
 	for _, station := range stations {

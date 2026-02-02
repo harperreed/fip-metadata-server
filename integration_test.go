@@ -87,6 +87,7 @@ func testAllStations(t *testing.T, cfg *TestIntegrationConfig) {
 		"fip_groove",
 		"fip_nouveautes",
 		"fip_electro",
+		"fip_cultes",
 		"fip",
 	}
 
