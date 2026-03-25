@@ -184,24 +184,91 @@ var fetchMetadata = func(param string) ([]byte, error) {
 		return nil, fmt.Errorf("error reading response body for %s: %v", param, err)
 	}
 
-	var jsonResponse map[string]interface{}
-	if err := json.Unmarshal(data, &jsonResponse); err != nil {
+	var rawResponse map[string]interface{}
+	if err := json.Unmarshal(data, &rawResponse); err != nil {
 		return nil, fmt.Errorf("error unmarshalling JSON response for %s: %v", param, err)
 	}
 
-	if jsonResponse == nil {
+	if rawResponse == nil {
 		return nil, fmt.Errorf("received null response from FIP API for %s", param)
 	}
 
-	// Inject stationName for backward compatibility
-	jsonResponse["stationName"] = param
+	transformed := transformResponse(rawResponse, param)
 
-	enriched, err := json.Marshal(jsonResponse)
+	result, err := json.Marshal(transformed)
 	if err != nil {
-		return nil, fmt.Errorf("error marshalling enriched response for %s: %v", param, err)
+		return nil, fmt.Errorf("error marshalling transformed response for %s: %v", param, err)
 	}
 
-	return enriched, nil
+	return result, nil
+}
+
+const visualBaseURL = "https://www.radiofrance.fr/pikapi/images"
+
+// transformTrack converts a track from the new livemeta format to the old format
+// that the frontend expects: firstLine/secondLine as objects with title, visuals with card src.
+func transformTrack(track map[string]interface{}) map[string]interface{} {
+	result := map[string]interface{}{}
+
+	// firstLine: string → {title: string}
+	if fl, ok := track["firstLine"].(string); ok {
+		result["firstLine"] = map[string]interface{}{"title": fl}
+	}
+	// secondLine: string → {title: string}
+	if sl, ok := track["secondLine"].(string); ok {
+		result["secondLine"] = map[string]interface{}{"title": sl}
+	}
+
+	// cover UUID → visuals.card.src
+	if cover, ok := track["cover"].(string); ok && cover != "" {
+		result["visuals"] = map[string]interface{}{
+			"card": map[string]interface{}{
+				"src": fmt.Sprintf("%s/%s", visualBaseURL, cover),
+			},
+		}
+	}
+
+	// Preserve timing fields
+	if v, ok := track["startTime"]; ok {
+		result["startTime"] = v
+	}
+	if v, ok := track["endTime"]; ok {
+		result["endTime"] = v
+	}
+	if v, ok := track["songUuid"]; ok {
+		result["songUuid"] = v
+	}
+
+	return result
+}
+
+// transformResponse converts the livemeta API response to the format the frontend expects.
+func transformResponse(raw map[string]interface{}, stationName string) map[string]interface{} {
+	result := map[string]interface{}{
+		"stationName":    stationName,
+		"delayToRefresh": raw["delayToRefresh"],
+	}
+
+	// Transform "now" (single object)
+	if now, ok := raw["now"].(map[string]interface{}); ok {
+		result["now"] = transformTrack(now)
+	}
+
+	// Transform "next" (array → first element as single object for backward compat)
+	if nextArr, ok := raw["next"].([]interface{}); ok && len(nextArr) > 0 {
+		if nextTrack, ok := nextArr[0].(map[string]interface{}); ok {
+			result["next"] = transformTrack(nextTrack)
+		}
+	}
+
+	// Transform "prev" (array → first element as single object)
+	if prevArr, ok := raw["prev"].([]interface{}); ok && len(prevArr) > 0 {
+		if prevTrack, ok := prevArr[0].(map[string]interface{}); ok {
+			result["prev"] = transformTrack(prevTrack)
+		}
+	}
+
+	return result
 }
 
 func generateETag(data []byte) string {

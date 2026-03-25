@@ -113,6 +113,17 @@ func testAllStations(t *testing.T, cfg *TestIntegrationConfig) {
 			if name, ok := result["stationName"].(string); ok && name != station {
 				t.Errorf("stationName mismatch for %s: got %s", station, name)
 			}
+
+			// Verify the transform: now.firstLine should be an object with "title"
+			if now, ok := result["now"].(map[string]interface{}); ok {
+				if fl, ok := now["firstLine"].(map[string]interface{}); ok {
+					if _, ok := fl["title"].(string); !ok {
+						t.Errorf("now.firstLine.title should be a string for %s", station)
+					}
+				} else {
+					t.Errorf("now.firstLine should be an object for %s", station)
+				}
+			}
 		})
 	}
 }

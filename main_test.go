@@ -179,9 +179,136 @@ func TestFetchMetadata(t *testing.T) {
 		t.Errorf("expected stationName %s, got %v", param, resp["stationName"])
 	}
 
-	// Verify now block exists
-	if resp["now"] == nil {
-		t.Error("expected 'now' field in response")
+	// Verify "now" is transformed: firstLine should be an object with "title"
+	now, ok := resp["now"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected 'now' to be an object")
+	}
+
+	fl, ok := now["firstLine"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected now.firstLine to be an object")
+	}
+	if fl["title"] != "Test Song" {
+		t.Errorf("expected now.firstLine.title = 'Test Song', got %v", fl["title"])
+	}
+
+	sl, ok := now["secondLine"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected now.secondLine to be an object")
+	}
+	if sl["title"] != "Test Artist" {
+		t.Errorf("expected now.secondLine.title = 'Test Artist', got %v", sl["title"])
+	}
+
+	// Verify visuals.card.src is constructed from cover UUID
+	visuals, ok := now["visuals"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected now.visuals to be an object")
+	}
+	card, ok := visuals["card"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected now.visuals.card to be an object")
+	}
+	expectedSrc := visualBaseURL + "/test-cover-uuid"
+	if card["src"] != expectedSrc {
+		t.Errorf("expected visuals.card.src = %s, got %v", expectedSrc, card["src"])
+	}
+}
+
+func TestTransformTrack(t *testing.T) {
+	raw := map[string]interface{}{
+		"firstLine":  "Song Title",
+		"secondLine": "Artist Name",
+		"cover":      "abc-123-uuid",
+		"startTime":  float64(1700000000),
+		"endTime":    float64(1700000300),
+		"songUuid":   "song-uuid-456",
+	}
+
+	result := transformTrack(raw)
+
+	// firstLine should be object with title
+	fl := result["firstLine"].(map[string]interface{})
+	if fl["title"] != "Song Title" {
+		t.Errorf("expected firstLine.title = 'Song Title', got %v", fl["title"])
+	}
+
+	// secondLine should be object with title
+	sl := result["secondLine"].(map[string]interface{})
+	if sl["title"] != "Artist Name" {
+		t.Errorf("expected secondLine.title = 'Artist Name', got %v", sl["title"])
+	}
+
+	// visuals.card.src should be constructed from cover
+	visuals := result["visuals"].(map[string]interface{})
+	card := visuals["card"].(map[string]interface{})
+	if card["src"] != visualBaseURL+"/abc-123-uuid" {
+		t.Errorf("unexpected visuals.card.src: %v", card["src"])
+	}
+
+	// Timing fields preserved
+	if result["startTime"] != float64(1700000000) {
+		t.Errorf("startTime not preserved: %v", result["startTime"])
+	}
+	if result["songUuid"] != "song-uuid-456" {
+		t.Errorf("songUuid not preserved: %v", result["songUuid"])
+	}
+}
+
+func TestTransformResponse(t *testing.T) {
+	raw := map[string]interface{}{
+		"now": map[string]interface{}{
+			"firstLine":  "Current Song",
+			"secondLine": "Current Artist",
+			"cover":      "now-uuid",
+		},
+		"next": []interface{}{
+			map[string]interface{}{
+				"firstLine":  "Next Song",
+				"secondLine": "Next Artist",
+				"cover":      "next-uuid",
+			},
+		},
+		"prev": []interface{}{
+			map[string]interface{}{
+				"firstLine":  "Prev Song",
+				"secondLine": "Prev Artist",
+				"cover":      "prev-uuid",
+			},
+		},
+		"delayToRefresh": float64(60000),
+	}
+
+	result := transformResponse(raw, "fip_rock")
+
+	if result["stationName"] != "fip_rock" {
+		t.Errorf("expected stationName fip_rock, got %v", result["stationName"])
+	}
+
+	// now should be a transformed single object
+	now := result["now"].(map[string]interface{})
+	nowFL := now["firstLine"].(map[string]interface{})
+	if nowFL["title"] != "Current Song" {
+		t.Errorf("expected now.firstLine.title = 'Current Song', got %v", nowFL["title"])
+	}
+
+	// next should be a transformed single object (first element of array)
+	next := result["next"].(map[string]interface{})
+	nextFL := next["firstLine"].(map[string]interface{})
+	if nextFL["title"] != "Next Song" {
+		t.Errorf("expected next.firstLine.title = 'Next Song', got %v", nextFL["title"])
+	}
+
+	// prev should be a transformed single object
+	prev := result["prev"].(map[string]interface{})
+	prevFL := prev["firstLine"].(map[string]interface{})
+	if prevFL["title"] != "Prev Song" {
+		t.Errorf("expected prev.firstLine.title = 'Prev Song', got %v", prevFL["title"])
+	}
+
+	if result["delayToRefresh"] != float64(60000) {
+		t.Errorf("expected delayToRefresh 60000, got %v", result["delayToRefresh"])
 	}
 }
 
