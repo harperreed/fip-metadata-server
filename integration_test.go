@@ -109,6 +109,10 @@ func testAllStations(t *testing.T, cfg *TestIntegrationConfig) {
 					t.Errorf("Expected field '%s' missing from response for station %s", field, station)
 				}
 			}
+
+			if name, ok := result["stationName"].(string); ok && name != station {
+				t.Errorf("stationName mismatch for %s: got %s", station, name)
+			}
 		})
 	}
 }

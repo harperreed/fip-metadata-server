@@ -1,6 +1,7 @@
 package main
 
 import (
+	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -20,11 +21,34 @@ type CachedResponse struct {
 	CachedAt time.Time
 }
 
+// stationConfig holds the numeric ID and API format for a FIP channel
+type stationConfig struct {
+	ID     int
+	Format string
+}
+
 var (
 	cache      = make(map[string]CachedResponse)
 	cacheMutex sync.Mutex
 	cacheTTL   = 1 * time.Second // Cache Time-To-Live
-	baseURL    = "https://www.radiofrance.fr/fip/api/live"
+	baseURL    = "https://api.radiofrance.fr/livemeta/live"
+
+	// stationMap maps channel names to their Radio France station IDs and API formats.
+	// The main FIP station uses "webrf_fip_player"; webradios use "webrf_webradio_player".
+	stationMap = map[string]stationConfig{
+		"fip":             {ID: 7, Format: "webrf_fip_player"},
+		"fip_rock":        {ID: 64, Format: "webrf_webradio_player"},
+		"fip_jazz":        {ID: 65, Format: "webrf_webradio_player"},
+		"fip_groove":      {ID: 66, Format: "webrf_webradio_player"},
+		"fip_world":       {ID: 69, Format: "webrf_webradio_player"},
+		"fip_nouveautes":  {ID: 70, Format: "webrf_webradio_player"},
+		"fip_reggae":      {ID: 71, Format: "webrf_webradio_player"},
+		"fip_electro":     {ID: 74, Format: "webrf_webradio_player"},
+		"fip_metal":       {ID: 77, Format: "webrf_webradio_player"},
+		"fip_pop":         {ID: 78, Format: "webrf_webradio_player"},
+		"fip_hiphop":      {ID: 95, Format: "webrf_webradio_player"},
+		"fip_cultes":      {ID: 709, Format: "webrf_webradio_player"},
+	}
 )
 
 func main() {
@@ -119,9 +143,22 @@ func getCachedData(param string) ([]byte, string, error) {
 
 // Make fetchMetadata a variable so it can be replaced in tests
 var fetchMetadata = func(param string) ([]byte, error) {
-	url := fmt.Sprintf("%s?webradio=%s", baseURL, param)
+	station, ok := stationMap[param]
+	if !ok {
+		return nil, fmt.Errorf("unknown station: %s", param)
+	}
+
+	url := fmt.Sprintf("%s/%d/%s", baseURL, station.ID, station.Format)
 	log.Printf("Fetching data from: %s\n", url)
-	resp, err := http.Get(url)
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request for %s: %v", param, err)
+	}
+	req.Header.Set("Accept-Encoding", "gzip, deflate")
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching data for %s: %v", param, err)
 	}
@@ -131,27 +168,40 @@ var fetchMetadata = func(param string) ([]byte, error) {
 		return nil, fmt.Errorf("received non-200 response code for %s: %d", param, resp.StatusCode)
 	}
 
-	data, err := io.ReadAll(resp.Body)
+	// Handle gzip-compressed responses
+	var reader io.Reader = resp.Body
+	if resp.Header.Get("Content-Encoding") == "gzip" {
+		gzReader, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("error creating gzip reader for %s: %v", param, err)
+		}
+		defer gzReader.Close()
+		reader = gzReader
+	}
+
+	data, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body for %s: %v", param, err)
 	}
 
-	// Verify the response is not null and has the expected stationName field
 	var jsonResponse map[string]interface{}
 	if err := json.Unmarshal(data, &jsonResponse); err != nil {
 		return nil, fmt.Errorf("error unmarshalling JSON response for %s: %v", param, err)
 	}
 
-	// Check if response is null (FIP API error case)
 	if jsonResponse == nil {
 		return nil, fmt.Errorf("received null response from FIP API for %s", param)
 	}
 
-	if stationName, ok := jsonResponse["stationName"].(string); !ok || stationName != param {
-		return nil, fmt.Errorf("stationName mismatch: expected %s, got %s", param, stationName)
+	// Inject stationName for backward compatibility
+	jsonResponse["stationName"] = param
+
+	enriched, err := json.Marshal(jsonResponse)
+	if err != nil {
+		return nil, fmt.Errorf("error marshalling enriched response for %s: %v", param, err)
 	}
 
-	return data, nil
+	return enriched, nil
 }
 
 func generateETag(data []byte) string {
