@@ -227,8 +227,32 @@
             <h3>Response</h3>
             <p>
                 The API will return the metadata for the requested station in
-                JSON format.
+                JSON format. <code>now</code>, <code>next</code> and
+                <code>prev</code> each describe one track, with
+                <code>firstLine.title</code> holding the track title,
+                <code>secondLine.title</code> the artist and
+                <code>visuals.card.src</code> the artwork.
             </p>
+            <p>
+                <code>now.media.sources</code> lists the station&rsquo;s live
+                audio streams, highest <code>bitrate</code> first, so a client
+                can start playback from the same response. The Radio France
+                metadata API does not carry these URLs; they are derived from
+                the station identifier.
+            </p>
+            <pre><code>"now": {
+  "firstLine":  { "title": "Working on me" },
+  "secondLine": { "title": "Drift" },
+  "visuals":    { "card": { "src": "https://www.radiofrance.fr/pikapi/images/..." } },
+  "startTime":  1790017685,
+  "endTime":    1790017895,
+  "media": {
+    "sources": [
+      { "url": "https://icecast.radiofrance.fr/fip-hifi.aac",  "bitrate": 192, "format": "aac" },
+      { "url": "https://icecast.radiofrance.fr/fip-midfi.mp3", "bitrate": 128, "format": "mp3" }
+    ]
+  }
+}</code></pre>
             <h3>Source</h3>
             <p>
                 Source code is available here
