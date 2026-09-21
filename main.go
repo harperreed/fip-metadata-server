@@ -111,6 +111,16 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
+// setCORSHeaders lets browser clients read the response from any origin. It
+// applies to error responses too: without it a browser reports a failed
+// request as a CORS error and the message in the body is unreachable.
+func setCORSHeaders(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin, User-Agent, Cache-Control, Pragma")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Max-Age", "86400")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	fipParam, ok := vars["param"]
@@ -130,6 +140,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 		jsonResp, _ := json.Marshal(errorResponse)
 		w.Header().Set("Content-Type", "application/json")
+		setCORSHeaders(w)
 		w.WriteHeader(http.StatusInternalServerError)
 		if _, err := w.Write(jsonResp); err != nil {
 			log.Printf("Error writing error response: %v", err)
@@ -146,10 +157,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("ETag", etag)
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin, User-Agent, Cache-Control, Pragma")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Max-Age", "86400")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	setCORSHeaders(w)
 	if _, err := w.Write(data); err != nil {
 		log.Printf("Error writing response: %v", err)
 		http.Error(w, "Error writing response", http.StatusInternalServerError)

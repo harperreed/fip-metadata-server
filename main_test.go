@@ -118,6 +118,20 @@ func TestHandlerUnknownStation(t *testing.T) {
 		t.Errorf("handler should return 500 for unknown station: got %v want %v",
 			status, http.StatusInternalServerError)
 	}
+
+	// Without CORS headers a browser reports this as a CORS failure and cannot
+	// read the error message in the body.
+	if origin := rr.Header().Get("Access-Control-Allow-Origin"); origin != "*" {
+		t.Errorf("error response should allow any origin, got %q", origin)
+	}
+
+	var errResp map[string]string
+	if err := json.Unmarshal(rr.Body.Bytes(), &errResp); err != nil {
+		t.Fatalf("error response is not valid JSON: %v", err)
+	}
+	if errResp["message"] == "" {
+		t.Errorf("error response should explain the failure, got %v", errResp)
+	}
 }
 
 func TestGetCachedData(t *testing.T) {
