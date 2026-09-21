@@ -337,9 +337,10 @@ func TestTransformResponse(t *testing.T) {
 
 func TestStreamSlug(t *testing.T) {
 	cases := map[string]string{
-		"fip":            "fip",
-		"fip_rock":       "fiprock",
-		"fip_nouveautes": "fipnouveautes",
+		"fip":                "fip",
+		"fip_rock":           "fiprock",
+		"fip_nouveautes":     "fipnouveautes",
+		"fip_sacre_francais": "fipsacrefrancais",
 	}
 
 	for station, expected := range cases {
@@ -350,7 +351,7 @@ func TestStreamSlug(t *testing.T) {
 }
 
 func TestStreamSources(t *testing.T) {
-	sources := streamSources("fip_nouveautes")
+	sources := streamSources("fip_sacre_francais")
 
 	if len(sources) != len(streamVariants) {
 		t.Fatalf("expected %d sources, got %d", len(streamVariants), len(sources))
@@ -367,7 +368,7 @@ func TestStreamSources(t *testing.T) {
 		if !ok {
 			t.Fatalf("source %d has no url: %v", i, source)
 		}
-		if !strings.HasPrefix(url, streamBaseURL+"/fipnouveautes-") {
+		if !strings.HasPrefix(url, streamBaseURL+"/fipsacrefrancais-") {
 			t.Errorf("source %d has unexpected url %q", i, url)
 		}
 		// The URL is interpolated into player and UPnP requests unencoded, so
@@ -403,7 +404,8 @@ func TestStationsHaveStreamSources(t *testing.T) {
 func TestStationNames(t *testing.T) {
 	stations := []string{
 		"fip_reggae", "fip_pop", "fip_metal", "fip_hiphop", "fip_rock",
-		"fip_jazz", "fip_world", "fip_groove", "fip_nouveautes", "fip_electro", "fip_cultes", "fip",
+		"fip_jazz", "fip_world", "fip_groove", "fip_nouveautes", "fip_electro", "fip_cultes",
+		"fip_sacre_francais", "fip",
 	}
 
 	for _, station := range stations {
@@ -440,7 +442,7 @@ func TestStationMap(t *testing.T) {
 	expectedStations := []string{
 		"fip", "fip_rock", "fip_jazz", "fip_groove", "fip_world",
 		"fip_nouveautes", "fip_reggae", "fip_electro", "fip_metal",
-		"fip_pop", "fip_hiphop", "fip_cultes",
+		"fip_pop", "fip_hiphop", "fip_cultes", "fip_sacre_francais",
 	}
 
 	for _, name := range expectedStations {

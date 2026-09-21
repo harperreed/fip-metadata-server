@@ -44,18 +44,19 @@ var (
 	// stationMap maps channel names to their Radio France station IDs and API formats.
 	// The main FIP station uses "webrf_fip_player"; webradios use "webrf_webradio_player".
 	stationMap = map[string]stationConfig{
-		"fip":            {ID: 7, Format: "webrf_fip_player"},
-		"fip_rock":       {ID: 64, Format: "webrf_webradio_player"},
-		"fip_jazz":       {ID: 65, Format: "webrf_webradio_player"},
-		"fip_groove":     {ID: 66, Format: "webrf_webradio_player"},
-		"fip_world":      {ID: 69, Format: "webrf_webradio_player"},
-		"fip_nouveautes": {ID: 70, Format: "webrf_webradio_player"},
-		"fip_reggae":     {ID: 71, Format: "webrf_webradio_player"},
-		"fip_electro":    {ID: 74, Format: "webrf_webradio_player"},
-		"fip_metal":      {ID: 77, Format: "webrf_webradio_player"},
-		"fip_pop":        {ID: 78, Format: "webrf_webradio_player"},
-		"fip_hiphop":     {ID: 95, Format: "webrf_webradio_player"},
-		"fip_cultes":     {ID: 709, Format: "webrf_webradio_player"},
+		"fip":                {ID: 7, Format: "webrf_fip_player"},
+		"fip_rock":           {ID: 64, Format: "webrf_webradio_player"},
+		"fip_jazz":           {ID: 65, Format: "webrf_webradio_player"},
+		"fip_groove":         {ID: 66, Format: "webrf_webradio_player"},
+		"fip_world":          {ID: 69, Format: "webrf_webradio_player"},
+		"fip_nouveautes":     {ID: 70, Format: "webrf_webradio_player"},
+		"fip_reggae":         {ID: 71, Format: "webrf_webradio_player"},
+		"fip_electro":        {ID: 74, Format: "webrf_webradio_player"},
+		"fip_metal":          {ID: 77, Format: "webrf_webradio_player"},
+		"fip_pop":            {ID: 78, Format: "webrf_webradio_player"},
+		"fip_hiphop":         {ID: 95, Format: "webrf_webradio_player"},
+		"fip_cultes":         {ID: 709, Format: "webrf_webradio_player"},
+		"fip_sacre_francais": {ID: 96, Format: "webrf_webradio_player"},
 	}
 
 	// streamBaseURL is the Icecast host serving the live audio for every channel.
