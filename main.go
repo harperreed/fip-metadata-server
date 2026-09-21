@@ -131,7 +131,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		jsonResp, _ := json.Marshal(errorResponse)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write(jsonResp)
+		if _, err := w.Write(jsonResp); err != nil {
+			log.Printf("Error writing error response: %v", err)
+		}
 		return
 	}
 
