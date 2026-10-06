@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -116,6 +117,20 @@ func TestHandlerUnknownStation(t *testing.T) {
 	if status := rr.Code; status != http.StatusInternalServerError {
 		t.Errorf("handler should return 500 for unknown station: got %v want %v",
 			status, http.StatusInternalServerError)
+	}
+
+	// Without CORS headers a browser reports this as a CORS failure and cannot
+	// read the error message in the body.
+	if origin := rr.Header().Get("Access-Control-Allow-Origin"); origin != "*" {
+		t.Errorf("error response should allow any origin, got %q", origin)
+	}
+
+	var errResp map[string]string
+	if err := json.Unmarshal(rr.Body.Bytes(), &errResp); err != nil {
+		t.Fatalf("error response is not valid JSON: %v", err)
+	}
+	if errResp["message"] == "" {
+		t.Errorf("error response should explain the failure, got %v", errResp)
 	}
 }
 
@@ -293,6 +308,21 @@ func TestTransformResponse(t *testing.T) {
 		t.Errorf("expected now.firstLine.title = 'Current Song', got %v", nowFL["title"])
 	}
 
+	// now carries the channel's audio streams so clients can start playback
+	nowMedia, ok := now["media"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected now.media to be an object, got %v", now["media"])
+	}
+	nowSources, ok := nowMedia["sources"].([]interface{})
+	if !ok || len(nowSources) == 0 {
+		t.Fatalf("expected now.media.sources to be a non-empty array, got %v", nowMedia["sources"])
+	}
+	firstSource := nowSources[0].(map[string]interface{})
+	if firstSource["url"] != "https://icecast.radiofrance.fr/fiprock-hifi.aac" {
+		t.Errorf("unexpected now.media.sources[0].url: %v", firstSource["url"])
+	}
+
+	// next and prev describe other tracks, so they carry no stream URLs
 	// next should be a transformed single object (first element of array)
 	next := result["next"].(map[string]interface{})
 	nextFL := next["firstLine"].(map[string]interface{})
@@ -307,15 +337,89 @@ func TestTransformResponse(t *testing.T) {
 		t.Errorf("expected prev.firstLine.title = 'Prev Song', got %v", prevFL["title"])
 	}
 
+	if _, ok := next["media"]; ok {
+		t.Errorf("next should not carry media, got %v", next["media"])
+	}
+	if _, ok := prev["media"]; ok {
+		t.Errorf("prev should not carry media, got %v", prev["media"])
+	}
+
 	if result["delayToRefresh"] != float64(60000) {
 		t.Errorf("expected delayToRefresh 60000, got %v", result["delayToRefresh"])
+	}
+}
+
+func TestStreamSlug(t *testing.T) {
+	cases := map[string]string{
+		"fip":                "fip",
+		"fip_rock":           "fiprock",
+		"fip_nouveautes":     "fipnouveautes",
+		"fip_sacre_francais": "fipsacrefrancais",
+	}
+
+	for station, expected := range cases {
+		if got := streamSlug(station); got != expected {
+			t.Errorf("streamSlug(%q) = %q, want %q", station, got, expected)
+		}
+	}
+}
+
+func TestStreamSources(t *testing.T) {
+	sources := streamSources("fip_sacre_francais")
+
+	if len(sources) != len(streamVariants) {
+		t.Fatalf("expected %d sources, got %d", len(streamVariants), len(sources))
+	}
+
+	previousBitrate := 0
+	for i, raw := range sources {
+		source, ok := raw.(map[string]interface{})
+		if !ok {
+			t.Fatalf("source %d is not an object: %v", i, raw)
+		}
+
+		url, ok := source["url"].(string)
+		if !ok {
+			t.Fatalf("source %d has no url: %v", i, source)
+		}
+		if !strings.HasPrefix(url, streamBaseURL+"/fipsacrefrancais-") {
+			t.Errorf("source %d has unexpected url %q", i, url)
+		}
+		// The URL is interpolated into player and UPnP requests unencoded, so
+		// it must stay free of query strings.
+		if strings.ContainsAny(url, "?& ") {
+			t.Errorf("source %d url must not need escaping: %q", i, url)
+		}
+
+		bitrate, ok := source["bitrate"].(int)
+		if !ok || bitrate <= 0 {
+			t.Fatalf("source %d has no positive integer bitrate: %v", i, source["bitrate"])
+		}
+		// Clients pick the highest bitrate, so the ordering must be descending.
+		if i > 0 && bitrate > previousBitrate {
+			t.Errorf("sources are not ordered by descending bitrate: %d after %d", bitrate, previousBitrate)
+		}
+		previousBitrate = bitrate
+
+		if format, ok := source["format"].(string); !ok || format == "" {
+			t.Errorf("source %d has no format: %v", i, source["format"])
+		}
+	}
+}
+
+func TestStationsHaveStreamSources(t *testing.T) {
+	for station := range stationMap {
+		if got := len(streamSources(station)); got == 0 {
+			t.Errorf("station %s has no stream sources", station)
+		}
 	}
 }
 
 func TestStationNames(t *testing.T) {
 	stations := []string{
 		"fip_reggae", "fip_pop", "fip_metal", "fip_hiphop", "fip_rock",
-		"fip_jazz", "fip_world", "fip_groove", "fip_nouveautes", "fip_electro", "fip_cultes", "fip",
+		"fip_jazz", "fip_world", "fip_groove", "fip_nouveautes", "fip_electro", "fip_cultes",
+		"fip_sacre_francais", "fip",
 	}
 
 	for _, station := range stations {
@@ -352,7 +456,7 @@ func TestStationMap(t *testing.T) {
 	expectedStations := []string{
 		"fip", "fip_rock", "fip_jazz", "fip_groove", "fip_world",
 		"fip_nouveautes", "fip_reggae", "fip_electro", "fip_metal",
-		"fip_pop", "fip_hiphop", "fip_cultes",
+		"fip_pop", "fip_hiphop", "fip_cultes", "fip_sacre_francais",
 	}
 
 	for _, name := range expectedStations {

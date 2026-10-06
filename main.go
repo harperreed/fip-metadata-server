@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -27,6 +28,13 @@ type stationConfig struct {
 	Format string
 }
 
+// streamVariant describes one Icecast quality variant of a channel's audio stream.
+type streamVariant struct {
+	Suffix  string
+	Bitrate int
+	Format  string
+}
+
 var (
 	cache      = make(map[string]CachedResponse)
 	cacheMutex sync.Mutex
@@ -36,20 +44,59 @@ var (
 	// stationMap maps channel names to their Radio France station IDs and API formats.
 	// The main FIP station uses "webrf_fip_player"; webradios use "webrf_webradio_player".
 	stationMap = map[string]stationConfig{
-		"fip":             {ID: 7, Format: "webrf_fip_player"},
-		"fip_rock":        {ID: 64, Format: "webrf_webradio_player"},
-		"fip_jazz":        {ID: 65, Format: "webrf_webradio_player"},
-		"fip_groove":      {ID: 66, Format: "webrf_webradio_player"},
-		"fip_world":       {ID: 69, Format: "webrf_webradio_player"},
-		"fip_nouveautes":  {ID: 70, Format: "webrf_webradio_player"},
-		"fip_reggae":      {ID: 71, Format: "webrf_webradio_player"},
-		"fip_electro":     {ID: 74, Format: "webrf_webradio_player"},
-		"fip_metal":       {ID: 77, Format: "webrf_webradio_player"},
-		"fip_pop":         {ID: 78, Format: "webrf_webradio_player"},
-		"fip_hiphop":      {ID: 95, Format: "webrf_webradio_player"},
-		"fip_cultes":      {ID: 709, Format: "webrf_webradio_player"},
+		"fip":                {ID: 7, Format: "webrf_fip_player"},
+		"fip_rock":           {ID: 64, Format: "webrf_webradio_player"},
+		"fip_jazz":           {ID: 65, Format: "webrf_webradio_player"},
+		"fip_groove":         {ID: 66, Format: "webrf_webradio_player"},
+		"fip_world":          {ID: 69, Format: "webrf_webradio_player"},
+		"fip_nouveautes":     {ID: 70, Format: "webrf_webradio_player"},
+		"fip_reggae":         {ID: 71, Format: "webrf_webradio_player"},
+		"fip_electro":        {ID: 74, Format: "webrf_webradio_player"},
+		"fip_metal":          {ID: 77, Format: "webrf_webradio_player"},
+		"fip_pop":            {ID: 78, Format: "webrf_webradio_player"},
+		"fip_hiphop":         {ID: 95, Format: "webrf_webradio_player"},
+		"fip_cultes":         {ID: 709, Format: "webrf_webradio_player"},
+		"fip_sacre_francais": {ID: 96, Format: "webrf_webradio_player"},
+	}
+
+	// streamBaseURL is the Icecast host serving the live audio for every channel.
+	streamBaseURL = "https://icecast.radiofrance.fr"
+
+	// streamVariants lists the quality variants published for every channel,
+	// highest bitrate first. Bitrates are the values Icecast reports in its
+	// icy-br header. The main FIP channel additionally offers midfi.aac and
+	// lofi variants, but those 404 on the webradios, so only the two variants
+	// that exist for every channel are advertised.
+	streamVariants = []streamVariant{
+		{Suffix: "hifi.aac", Bitrate: 192, Format: "aac"},
+		{Suffix: "midfi.mp3", Bitrate: 128, Format: "mp3"},
 	}
 )
+
+// streamSlug converts a channel name into its Icecast mount name by dropping
+// the underscores, e.g. "fip_sacre_francais" becomes "fipsacrefrancais".
+func streamSlug(station string) string {
+	return strings.ReplaceAll(station, "_", "")
+}
+
+// streamSources lists the playable audio streams for a channel, highest
+// bitrate first.
+//
+// The livemeta API carries no stream URLs. The Radio France API this server
+// previously proxied did, and clients read them from now.media.sources to
+// start playback, so they are rebuilt here from the channel name.
+func streamSources(station string) []interface{} {
+	slug := streamSlug(station)
+	sources := make([]interface{}, 0, len(streamVariants))
+	for _, variant := range streamVariants {
+		sources = append(sources, map[string]interface{}{
+			"url":     fmt.Sprintf("%s/%s-%s", streamBaseURL, slug, variant.Suffix),
+			"bitrate": variant.Bitrate,
+			"format":  variant.Format,
+		})
+	}
+	return sources
+}
 
 func main() {
 	router := mux.NewRouter()
@@ -62,6 +109,16 @@ func main() {
 
 	log.Println("Server starting on :8080")
 	log.Fatal(http.ListenAndServe(":8080", router))
+}
+
+// setCORSHeaders lets browser clients read the response from any origin. It
+// applies to error responses too: without it a browser reports a failed
+// request as a CORS error and the message in the body is unreachable.
+func setCORSHeaders(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin, User-Agent, Cache-Control, Pragma")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Max-Age", "86400")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -83,8 +140,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 		jsonResp, _ := json.Marshal(errorResponse)
 		w.Header().Set("Content-Type", "application/json")
+		setCORSHeaders(w)
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write(jsonResp)
+		if _, err := w.Write(jsonResp); err != nil {
+			log.Printf("Error writing error response: %v", err)
+		}
 		return
 	}
 
@@ -97,10 +157,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("ETag", etag)
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin, User-Agent, Cache-Control, Pragma")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Max-Age", "86400")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	setCORSHeaders(w)
 	if _, err := w.Write(data); err != nil {
 		log.Printf("Error writing response: %v", err)
 		http.Error(w, "Error writing response", http.StatusInternalServerError)
@@ -249,9 +306,13 @@ func transformResponse(raw map[string]interface{}, stationName string) map[strin
 		"delayToRefresh": raw["delayToRefresh"],
 	}
 
-	// Transform "now" (single object)
+	// Transform "now" (single object) and attach the channel's audio streams.
+	// They belong to the channel rather than the track, but clients expect them
+	// under "now", which is where the previous API exposed them.
 	if now, ok := raw["now"].(map[string]interface{}); ok {
-		result["now"] = transformTrack(now)
+		track := transformTrack(now)
+		track["media"] = map[string]interface{}{"sources": streamSources(stationName)}
+		result["now"] = track
 	}
 
 	// Transform "next" (array → first element as single object for backward compat)
